@@ -1,28 +1,40 @@
-
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import SummaryCards from "./components/SummaryCards";
 import RegionBarChart from "./components/RegionBarChart";
 import ProductPieChart from "./components/ProductPieChart";
 import MonthlyLineChart from "./components/MonthlyLineChart";
 
-export default function App() {
-  const [data, setData] = useState(null);
-  const [error, setError] = useState("");
+function App() {
+  const [insights, setInsights] = useState(null);
+
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/insights`)
+    fetch("/api/insights")
       .then(res => res.json())
-      .then(setData)
-      .catch(() => setError("Failed to load data"));
+      .then(data => setInsights(data))
+      .catch(err => console.error("❌ Error fetching insights:", err));
   }, []);
-  if (error) return <p className="text-red-500">{error}</p>;
-  if (!data) return <p className="p-4">Loading...</p>;
+
+  if (!insights) return <p className="text-center mt-10">Loading Dashboard...</p>;
+
   return (
-    <div className="p-4 space-y-6">
-      <h1 className="text-2xl font-bold">Sales Dashboard</h1>
-      <SummaryCards sales={data.totalSales} profit={data.totalProfit}/>
-      <RegionBarChart data={data.salesPerRegion}/>
-      <ProductPieChart data={data.topProducts}/>
-      <MonthlyLineChart data={data.monthlyTrend}/>
+    <div className="p-6 space-y-6">
+      <h1 className="text-2xl font-bold">📊 Sales Dashboard</h1>
+
+      <SummaryCards totalSales={insights.totalSales} totalProfit={insights.totalProfit} />
+
+      <div className="grid grid-cols-2 gap-4">
+        <RegionBarChart data={insights.regionSales} />
+        <MonthlyLineChart data={insights.monthlySales} />
+      </div>
+
+      <ProductPieChart data={insights.topProducts} />
+
+      <div className="bg-white p-4 rounded-lg shadow">
+        <h2 className="font-semibold mb-2">AI Insights</h2>
+        <p>{insights.aiSummary}</p>
+      </div>
     </div>
   );
 }
+
+export default App;
