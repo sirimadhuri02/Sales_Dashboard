@@ -1,19 +1,9 @@
-
-import React from "react";
-
-function SummaryCards({ totalSales, totalProfit }) {
+export default function SummaryCards() {
   return (
-    <div className="grid grid-cols-2 gap-4">
-      <div className="bg-white shadow p-4 rounded-lg">
-        <p className="text-gray-600">Total Sales</p>
-        <h2 className="text-xl font-bold">{totalSales}</h2>
-      </div>
-      <div className="bg-white shadow p-4 rounded-lg">
-        <p className="text-gray-600">Total Profit</p>
-        <h2 className="text-xl font-bold">{totalProfit}</h2>
-      </div>
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="bg-gray-800 p-4 rounded-lg shadow">Total Sales: $120K</div>
+      <div className="bg-gray-800 p-4 rounded-lg shadow">Regions: 5</div>
+      <div className="bg-gray-800 p-4 rounded-lg shadow">Products: 12</div>
     </div>
   );
 }
-
-export default SummaryCards;
