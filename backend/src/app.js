@@ -1,17 +1,19 @@
 import express from "express";
 import dotenv from "dotenv";
+import cors from "cors";
 import { connectDB } from "./db.js";
 import insightsRoute from "./routes/insights.js";
-import cors from "cors";
-app.use(cors());
 
+dotenv.config();       // 1️⃣ Load env variables
 
+const app = express(); // 2️⃣ Initialize Express app
 
-dotenv.config();
+app.use(cors());       // 3️⃣ Middleware
+app.use(express.json());
 
-const app = express();
-connectDB();
+connectDB();           // 4️⃣ Connect to MongoDB
 
+// 5️⃣ Routes
 app.use("/api/insights", insightsRoute);
 
 const PORT = process.env.PORT || 5000;
