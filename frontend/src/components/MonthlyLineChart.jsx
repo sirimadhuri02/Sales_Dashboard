@@ -1,40 +1,32 @@
-
+import { useEffect, useState } from "react";
 import { Line } from "react-chartjs-2";
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-} from "chart.js";
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend
-);
 
 export default function MonthlyLineChart() {
-  const data = {
-    labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"],
-    datasets: [
-      {
-        label: "Monthly Sales ($)",
-        data: [12000, 15000, 18000, 10000, 17000, 22000, 19000],
-        borderColor: "rgba(59, 130, 246, 1)",   // Blue
-        backgroundColor: "rgba(59, 130, 246, 0.5)",
-        tension: 0.3, // smooth curve
-        fill: true,
-      },
-    ],
-  };
+  const [data, setData] = useState({ labels: [], datasets: [] });
+
+  useEffect(() => {
+    fetch("http://localhost:5000/api/insights")
+      .then(res => res.json())
+      .then(res => {
+        const labels = Object.keys(res.monthlySales);
+        const values = Object.values(res.monthlySales);
+
+        setData({
+          labels,
+          datasets: [
+            {
+              label: "Monthly Sales ($)",
+              data: values,
+              borderColor: "rgba(59, 130, 246, 1)",
+              backgroundColor: "rgba(59, 130, 246, 0.5)",
+              tension: 0.3,
+              fill: true,
+            },
+          ],
+        });
+      })
+      .catch(err => console.error(err));
+  }, []);
 
   return (
     <div className="bg-gray-800 p-4 rounded-lg shadow">
