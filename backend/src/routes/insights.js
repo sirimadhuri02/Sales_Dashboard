@@ -1,33 +1,33 @@
 import express from "express";
 import SalesData from "../models/SalesData.js";
-import OpenAI from "openai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const router = express.Router();
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+// Setup Gemini client
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
 // GET /api/insights
 router.get("/", async (req, res) => {
   try {
     const data = await SalesData.find();
 
-    // Basic insights
+    // Aggregations
     const totalSales = data.reduce((sum, d) => sum + d.sales, 0);
     const totalProfit = data.reduce((sum, d) => sum + d.profit, 0);
 
-    // Monthly trend
     const monthlySales = {};
     data.forEach(d => {
       const month = new Date(d.date).toLocaleString("default", { month: "short", year: "numeric" });
       monthlySales[month] = (monthlySales[month] || 0) + d.sales;
     });
 
-    // Region breakdown
     const regionSales = {};
     data.forEach(d => {
       regionSales[d.region] = (regionSales[d.region] || 0) + d.sales;
     });
 
-    // Top products
     const productSales = {};
     data.forEach(d => {
       productSales[d.product] = (productSales[d.product] || 0) + d.sales;
@@ -36,21 +36,18 @@ router.get("/", async (req, res) => {
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5);
 
-    // AI summary
+    // Gemini AI prompt
     const prompt = `
-      You are analyzing company sales data.
+      Analyze this company's sales data and summarize insights:
       - Total Sales: ${totalSales}
       - Total Profit: ${totalProfit}
       - Monthly Sales: ${JSON.stringify(monthlySales)}
       - Region Sales: ${JSON.stringify(regionSales)}
       - Top Products: ${JSON.stringify(topProducts)}
-      Write a concise summary highlighting key business insights.
+      Provide a clear, business-friendly summary.
     `;
 
-    const aiResponse = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [{ role: "user", content: prompt }]
-    });
+    const result = await model.generateContent(prompt);
 
     res.json({
       totalSales,
@@ -58,8 +55,9 @@ router.get("/", async (req, res) => {
       monthlySales,
       regionSales,
       topProducts,
-      aiSummary: aiResponse.choices[0].message.content
+      aiSummary: result.response.text()
     });
+
   } catch (err) {
     console.error("❌ Error fetching insights:", err.message);
     res.status(500).json({ error: "Failed to fetch insights" });
