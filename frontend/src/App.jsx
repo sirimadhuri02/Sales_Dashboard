@@ -1,40 +1,28 @@
-import React, { useEffect, useState } from "react";
 import SummaryCards from "./components/SummaryCards";
 import RegionBarChart from "./components/RegionBarChart";
 import ProductPieChart from "./components/ProductPieChart";
 import MonthlyLineChart from "./components/MonthlyLineChart";
 
-function App() {
-  const [insights, setInsights] = useState(null);
-
-  useEffect(() => {
-    fetch("/api/insights")
-      .then(res => res.json())
-      .then(data => setInsights(data))
-      .catch(err => console.error("❌ Error fetching insights:", err));
-  }, []);
-
-  if (!insights) return <p className="text-center mt-10">Loading Dashboard...</p>;
-
+export default function App() {
   return (
-    <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-bold">📊 Sales Dashboard</h1>
+    <div className="min-h-screen bg-gray-900 text-white p-6">
+      <h1 className="text-3xl font-bold mb-6">📊 Sales Dashboard</h1>
 
-      <SummaryCards totalSales={insights.totalSales} totalProfit={insights.totalProfit} />
+      {/* Top Summary Cards */}
+      <SummaryCards />
 
-      <div className="grid grid-cols-2 gap-4">
-        <RegionBarChart data={insights.regionSales} />
-        <MonthlyLineChart data={insights.monthlySales} />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+        {/* Left Side */}
+        <RegionBarChart />
+
+        {/* Right Side */}
+        <ProductPieChart />
       </div>
 
-      <ProductPieChart data={insights.topProducts} />
-
-      <div className="bg-white p-4 rounded-lg shadow">
-        <h2 className="font-semibold mb-2">AI Insights</h2>
-        <p>{insights.aiSummary}</p>
+      {/* Full width bottom chart */}
+      <div className="mt-6">
+        <MonthlyLineChart />
       </div>
     </div>
   );
 }
-
-export default App;
