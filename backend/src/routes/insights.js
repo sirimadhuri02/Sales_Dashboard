@@ -1,45 +1,69 @@
 import express from "express";
-import mongoose from "mongoose";
+import SalesData from "../models/SalesData.js";
+import OpenAI from "openai";
+
 const router = express.Router();
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-const SalesSchema = new mongoose.Schema({
-  date: Date,
-  product: String,
-  region: String,
-  sales: Number,
-  profit: Number
-}, { collection: "sales_data" });
-
-const Sale = mongoose.model("Sale", SalesSchema);
-
-router.get("/", async (_req, res) => {
+// GET /api/insights
+router.get("/", async (req, res) => {
   try {
-    const totalSales = await Sale.aggregate([{ $group: { _id: null, total: { $sum: "$sales" } } }]);
-    const totalProfit = await Sale.aggregate([{ $group: { _id: null, total: { $sum: "$profit" } } }]);
-    const salesPerRegion = await Sale.aggregate([{ $group: { _id: "$region", total: { $sum: "$sales" } } }]);
-    const topProducts = await Sale.aggregate([
-      { $group: { _id: "$product", total: { $sum: "$sales" } } },
-      { $sort: { total: -1 } }, { $limit: 5 }
-    ]);
-    const monthlyTrend = await Sale.aggregate([
-      { $group: { 
-          _id: { $dateToString: { format: "%Y-%m", date: "$date" } },
-          total: { $sum: "$sales" } } },
-      { $sort: { "_id": 1 } }
-    ]);
+    const data = await SalesData.find();
+
+    // Basic insights
+    const totalSales = data.reduce((sum, d) => sum + d.sales, 0);
+    const totalProfit = data.reduce((sum, d) => sum + d.profit, 0);
+
+    // Monthly trend
+    const monthlySales = {};
+    data.forEach(d => {
+      const month = new Date(d.date).toLocaleString("default", { month: "short", year: "numeric" });
+      monthlySales[month] = (monthlySales[month] || 0) + d.sales;
+    });
+
+    // Region breakdown
+    const regionSales = {};
+    data.forEach(d => {
+      regionSales[d.region] = (regionSales[d.region] || 0) + d.sales;
+    });
+
+    // Top products
+    const productSales = {};
+    data.forEach(d => {
+      productSales[d.product] = (productSales[d.product] || 0) + d.sales;
+    });
+    const topProducts = Object.entries(productSales)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5);
+
+    // AI summary
+    const prompt = `
+      You are analyzing company sales data.
+      - Total Sales: ${totalSales}
+      - Total Profit: ${totalProfit}
+      - Monthly Sales: ${JSON.stringify(monthlySales)}
+      - Region Sales: ${JSON.stringify(regionSales)}
+      - Top Products: ${JSON.stringify(topProducts)}
+      Write a concise summary highlighting key business insights.
+    `;
+
+    const aiResponse = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: prompt }]
+    });
 
     res.json({
-      totalSales: totalSales[0]?.total || 0,
-      totalProfit: totalProfit[0]?.total || 0,
-      salesPerRegion,
+      totalSales,
+      totalProfit,
+      monthlySales,
+      regionSales,
       topProducts,
-      monthlyTrend
+      aiSummary: aiResponse.choices[0].message.content
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
+    console.error("❌ Error fetching insights:", err.message);
+    res.status(500).json({ error: "Failed to fetch insights" });
   }
 });
 
 export default router;
-
